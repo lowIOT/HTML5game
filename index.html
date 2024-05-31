@@ -8,8 +8,21 @@
 </head>
 <body>
     <h1>パズル</h1>
-    <div id="score">Score: 0</div>
-    <canvas id="gameCanvas" width="320" height="640"></canvas>
+    <div id="container">
+        <!-- ゲーム表示用のキャンバス -->
+        <canvas id="gameCanvas" width="320" height="640"></canvas>
+        <!-- 操作方法表示用のセクション -->
+        <div id="controls">
+            <div id="score">Score: 0</div>
+            <h2>操作方法</h2>
+            <ul>
+                <li>左矢印キー: ペアを左に移動</li>
+                <li>右矢印キー: ペアを右に移動</li>
+                <li>下矢印キー: ペアを下に早く移動</li>
+                <li>スペースキー: ペアを回転</li>
+            </ul>
+        </div>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>

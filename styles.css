@@ -9,6 +9,24 @@ body {
     background-color: #f0f0f0;
 }
 
+#container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+}
+
 canvas {
     border: 1px solid #000;
+}
+
+#controls {
+    margin-left: 20px;
+}
+
+#controls h2 {
+    margin-top: 0;
+}
+
+#controls ul {
+    padding-left: 20px;
 }

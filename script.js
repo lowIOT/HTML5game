@@ -9,8 +9,8 @@ const PUYO_SIZE = 32;
 const colors = ['red', 'green', 'blue', 'yellow', 'purple'];
 
 // 音楽と効果音のファイル
-const bgm = new Audio('bgm.mp3');
-const popSound = new Audio('pop.mp3');
+const bgm = new Audio('bgm.mp3'); // BGMファイルのパス
+const popSound = new Audio('pop.mp3'); // 効果音ファイルのパス
 
 class Puyo {
     constructor(color) {
@@ -19,6 +19,7 @@ class Puyo {
         this.y = 0;
     }
 
+    // ぷよをキャンバスに描画
     draw() {
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x * PUYO_SIZE, this.y * PUYO_SIZE, PUYO_SIZE, PUYO_SIZE);
@@ -32,11 +33,13 @@ class PuyoPair {
         this.rotationState = 0; // 0: 上, 1: 右, 2: 下, 3: 左
     }
 
+    // ぷよペアを描画
     draw() {
         this.puyo1.draw();
         this.puyo2.draw();
     }
 
+    // ぷよペアの回転処理
     rotate(grid) {
         const { x, y } = this.puyo1;
         const newPositions = [
@@ -65,17 +68,20 @@ class Game {
         this.startBGM();
     }
 
+    // BGMの再生
     startBGM() {
         bgm.loop = true;
         bgm.play();
     }
 
+    // 新しいぷよペアを生成
     generatePuyoPair() {
         const puyo1 = new Puyo(colors[Math.floor(Math.random() * colors.length)]);
         const puyo2 = new Puyo(colors[Math.floor(Math.random() * colors.length)]);
         return new PuyoPair(puyo1, puyo2);
     }
 
+    // ぷよペアをグリッド上にドロップ
     dropPuyoPair() {
         this.activePuyoPair.puyo1.x = Math.floor(COLS / 2);
         this.activePuyoPair.puyo1.y = 0;
@@ -87,6 +93,7 @@ class Game {
         this.draw();
     }
 
+    // キャンバスに全てのぷよを描画
     draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         for (let row = 0; row < ROWS; row++) {
@@ -99,6 +106,7 @@ class Game {
         this.activePuyoPair.draw();
     }
 
+    // ゲームの更新処理
     update() {
         if (this.gameOver) {
             alert("Game Over");
@@ -118,6 +126,7 @@ class Game {
         this.draw();
     }
 
+    // ぷよペアが下に移動できるかチェック
     canMoveDown() {
         const { puyo1, puyo2 } = this.activePuyoPair;
         return (
@@ -126,12 +135,14 @@ class Game {
         );
     }
 
+    // ぷよペアをグリッドに配置
     placePuyoPair() {
         const { puyo1, puyo2 } = this.activePuyoPair;
         this.grid[puyo1.y][puyo1.x] = puyo1;
         this.grid[puyo2.y][puyo2.x] = puyo2;
     }
 
+    // 連結されたぷよをチェック
     checkForMatches() {
         const toRemove = [];
         const visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
@@ -143,6 +154,7 @@ class Game {
             { x: -1, y: 0 }
         ];
 
+        // 深さ優先探索で連結を確認
         const dfs = (x, y, color) => {
             const stack = [{ x, y }];
             const cells = [];
@@ -160,6 +172,7 @@ class Game {
             return cells;
         };
 
+        // 連結ぷよを探して消去
         for (let row = 0; row < ROWS; row++) {
             for (let col = 0; col < COLS; col++) {
                 if (this.grid[row][col] && !visited[row][col]) {
@@ -171,10 +184,12 @@ class Game {
             }
         }
 
+        // 効果音再生
         if (toRemove.length > 0) {
             popSound.play();
         }
 
+        // 連結ぷよをグリッドから消去
         toRemove.forEach(({ x, y }) => {
             this.grid[y][x] = null;
         });
@@ -183,6 +198,7 @@ class Game {
         this.applyGravity();
     }
 
+    // ぷよが消えた後の重力処理
     applyGravity() {
         for (let col = 0; col < COLS; col++) {
             for (let row = ROWS - 1; row >= 0; row--) {
@@ -199,12 +215,14 @@ class Game {
         }
     }
 
+    // スコアの更新
     updateScore(numRemoved) {
         const points = numRemoved * 10; // 10点/ぷよ
         this.score += points;
         scoreElement.textContent = `Score: ${this.score}`;
     }
 
+    // キーボード入力の設定
     setupControls() {
         document.addEventListener('keydown', (event) => {
             if (this.gameOver) return;
@@ -236,6 +254,7 @@ class Game {
         });
     }
 
+    // ぷよが左に移動できるかチェック
     canMoveLeft() {
         const { puyo1, puyo2 } = this.activePuyoPair;
         return (
@@ -244,6 +263,7 @@ class Game {
         );
     }
 
+    // ぷよが右に移動できるかチェック
     canMoveRight() {
         const { puyo1, puyo2 } = this.activePuyoPair;
         return (
@@ -252,6 +272,7 @@ class Game {
         );
     }
 
+    // ゲームの開始
     start() {
         setInterval(() => this.update(), 500);
     }
@@ -259,3 +280,9 @@ class Game {
 
 const game = new Game();
 game.start();
+
+// ゲーム操作方法
+// - 左矢印キー: ぷよペアを左に移動
+// - 右矢印キー: ぷよペアを右に移動
+// - 下矢印キー: ぷよペアを下に早く移動
+// - スペースキー: ぷよペアを回転
