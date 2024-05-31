@@ -8,6 +8,10 @@ const PUYO_SIZE = 32;
 
 const colors = ['red', 'green', 'blue', 'yellow', 'purple'];
 
+// 音楽と効果音のファイル
+const bgm = new Audio('bgm.mp3');
+const popSound = new Audio('pop.mp3');
+
 class Puyo {
     constructor(color) {
         this.color = color;
@@ -21,25 +25,63 @@ class Puyo {
     }
 }
 
+class PuyoPair {
+    constructor(puyo1, puyo2) {
+        this.puyo1 = puyo1;
+        this.puyo2 = puyo2;
+        this.rotationState = 0; // 0: 上, 1: 右, 2: 下, 3: 左
+    }
+
+    draw() {
+        this.puyo1.draw();
+        this.puyo2.draw();
+    }
+
+    rotate(grid) {
+        const { x, y } = this.puyo1;
+        const newPositions = [
+            { x: x, y: y - 1 }, // 上
+            { x: x + 1, y: y }, // 右
+            { x: x, y: y + 1 }, // 下
+            { x: x - 1, y: y }  // 左
+        ];
+        const newPos = newPositions[(this.rotationState + 1) % 4];
+        if (newPos.x >= 0 && newPos.x < COLS && newPos.y >= 0 && newPos.y < ROWS && !grid[newPos.y][newPos.x]) {
+            this.puyo2.x = newPos.x;
+            this.puyo2.y = newPos.y;
+            this.rotationState = (this.rotationState + 1) % 4;
+        }
+    }
+}
+
 class Game {
     constructor() {
         this.grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
-        this.activePuyo = this.generatePuyo();
+        this.activePuyoPair = this.generatePuyoPair();
         this.gameOver = false;
         this.score = 0;
-        this.dropPuyo();
+        this.dropPuyoPair();
         this.setupControls();
+        this.startBGM();
     }
 
-    generatePuyo() {
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        return new Puyo(color);
+    startBGM() {
+        bgm.loop = true;
+        bgm.play();
     }
 
-    dropPuyo() {
-        this.activePuyo.x = Math.floor(COLS / 2);
-        this.activePuyo.y = 0;
-        if (this.grid[0][this.activePuyo.x]) {
+    generatePuyoPair() {
+        const puyo1 = new Puyo(colors[Math.floor(Math.random() * colors.length)]);
+        const puyo2 = new Puyo(colors[Math.floor(Math.random() * colors.length)]);
+        return new PuyoPair(puyo1, puyo2);
+    }
+
+    dropPuyoPair() {
+        this.activePuyoPair.puyo1.x = Math.floor(COLS / 2);
+        this.activePuyoPair.puyo1.y = 0;
+        this.activePuyoPair.puyo2.x = Math.floor(COLS / 2);
+        this.activePuyoPair.puyo2.y = 1;
+        if (this.grid[0][this.activePuyoPair.puyo1.x] || this.grid[1][this.activePuyoPair.puyo2.x]) {
             this.gameOver = true;
         }
         this.draw();
@@ -54,24 +96,40 @@ class Game {
                 }
             }
         }
-        this.activePuyo.draw();
+        this.activePuyoPair.draw();
     }
 
     update() {
         if (this.gameOver) {
             alert("Game Over");
+            bgm.pause();
             return;
         }
 
-        if (this.activePuyo.y + 1 < ROWS && !this.grid[this.activePuyo.y + 1][this.activePuyo.x]) {
-            this.activePuyo.y += 1;
+        if (this.canMoveDown()) {
+            this.activePuyoPair.puyo1.y += 1;
+            this.activePuyoPair.puyo2.y += 1;
         } else {
-            this.grid[this.activePuyo.y][this.activePuyo.x] = this.activePuyo;
+            this.placePuyoPair();
             this.checkForMatches();
-            this.activePuyo = this.generatePuyo();
-            this.dropPuyo();
+            this.activePuyoPair = this.generatePuyoPair();
+            this.dropPuyoPair();
         }
         this.draw();
+    }
+
+    canMoveDown() {
+        const { puyo1, puyo2 } = this.activePuyoPair;
+        return (
+            puyo1.y + 1 < ROWS && !this.grid[puyo1.y + 1][puyo1.x] &&
+            puyo2.y + 1 < ROWS && !this.grid[puyo2.y + 1][puyo2.x]
+        );
+    }
+
+    placePuyoPair() {
+        const { puyo1, puyo2 } = this.activePuyoPair;
+        this.grid[puyo1.y][puyo1.x] = puyo1;
+        this.grid[puyo2.y][puyo2.x] = puyo2;
     }
 
     checkForMatches() {
@@ -113,6 +171,10 @@ class Game {
             }
         }
 
+        if (toRemove.length > 0) {
+            popSound.play();
+        }
+
         toRemove.forEach(({ x, y }) => {
             this.grid[y][x] = null;
         });
@@ -149,23 +211,45 @@ class Game {
 
             switch (event.key) {
                 case 'ArrowLeft':
-                    if (this.activePuyo.x > 0 && !this.grid[this.activePuyo.y][this.activePuyo.x - 1]) {
-                        this.activePuyo.x -= 1;
+                    if (this.canMoveLeft()) {
+                        this.activePuyoPair.puyo1.x -= 1;
+                        this.activePuyoPair.puyo2.x -= 1;
                     }
                     break;
                 case 'ArrowRight':
-                    if (this.activePuyo.x < COLS - 1 && !this.grid[this.activePuyo.y][this.activePuyo.x + 1]) {
-                        this.activePuyo.x += 1;
+                    if (this.canMoveRight()) {
+                        this.activePuyoPair.puyo1.x += 1;
+                        this.activePuyoPair.puyo2.x += 1;
                     }
                     break;
                 case 'ArrowDown':
-                    if (this.activePuyo.y + 1 < ROWS && !this.grid[this.activePuyo.y + 1][this.activePuyo.x]) {
-                        this.activePuyo.y += 1;
+                    if (this.canMoveDown()) {
+                        this.activePuyoPair.puyo1.y += 1;
+                        this.activePuyoPair.puyo2.y += 1;
                     }
+                    break;
+                case ' ':
+                    this.activePuyoPair.rotate(this.grid);
                     break;
             }
             this.draw();
         });
+    }
+
+    canMoveLeft() {
+        const { puyo1, puyo2 } = this.activePuyoPair;
+        return (
+            puyo1.x > 0 && !this.grid[puyo1.y][puyo1.x - 1] &&
+            puyo2.x > 0 && !this.grid[puyo2.y][puyo2.x - 1]
+        );
+    }
+
+    canMoveRight() {
+        const { puyo1, puyo2 } = this.activePuyoPair;
+        return (
+            puyo1.x < COLS - 1 && !this.grid[puyo1.y][puyo1.x + 1] &&
+            puyo2.x < COLS - 1 && !this.grid[puyo2.y][puyo2.x + 1]
+        );
     }
 
     start() {
