@@ -1,5 +1,6 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const scoreElement = document.getElementById('score');
 
 const COLS = 6;
 const ROWS = 12;
@@ -25,7 +26,9 @@ class Game {
         this.grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
         this.activePuyo = this.generatePuyo();
         this.gameOver = false;
+        this.score = 0;
         this.dropPuyo();
+        this.setupControls();
     }
 
     generatePuyo() {
@@ -114,6 +117,7 @@ class Game {
             this.grid[y][x] = null;
         });
 
+        this.updateScore(toRemove.length);
         this.applyGravity();
     }
 
@@ -131,6 +135,37 @@ class Game {
                 }
             }
         }
+    }
+
+    updateScore(numRemoved) {
+        const points = numRemoved * 10; // 10点/ぷよ
+        this.score += points;
+        scoreElement.textContent = `Score: ${this.score}`;
+    }
+
+    setupControls() {
+        document.addEventListener('keydown', (event) => {
+            if (this.gameOver) return;
+
+            switch (event.key) {
+                case 'ArrowLeft':
+                    if (this.activePuyo.x > 0 && !this.grid[this.activePuyo.y][this.activePuyo.x - 1]) {
+                        this.activePuyo.x -= 1;
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (this.activePuyo.x < COLS - 1 && !this.grid[this.activePuyo.y][this.activePuyo.x + 1]) {
+                        this.activePuyo.x += 1;
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (this.activePuyo.y + 1 < ROWS && !this.grid[this.activePuyo.y + 1][this.activePuyo.x]) {
+                        this.activePuyo.y += 1;
+                    }
+                    break;
+            }
+            this.draw();
+        });
     }
 
     start() {
